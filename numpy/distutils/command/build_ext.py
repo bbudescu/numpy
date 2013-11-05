@@ -472,7 +472,7 @@ class build_ext (old_build_ext):
         c_library_dirs.extend(f_lib_dirs)
 
         # make g77-compiled static libs available to MSVC
-        for lib in fcompiler.libraries:
+        for lib in fcompiler.libraries + c_libraries:
             if not lib.startswith('msvc'):
                 c_libraries.append(lib)
                 p = combine_paths(f_lib_dirs, 'lib' + lib + '.a')

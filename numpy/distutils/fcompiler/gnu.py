@@ -24,7 +24,8 @@ def is_win64():
 
 if is_win64():
     #_EXTRAFLAGS = ["-fno-leading-underscore"]
-    _EXTRAFLAGS = []
+    _EXTRAFLAGS = ['-fno-stack-check', '-fno-stack-protector', '-mno-stack-arg-probe']
+    #_EXTRAFLAGS = []
 else:
     _EXTRAFLAGS = []
 
