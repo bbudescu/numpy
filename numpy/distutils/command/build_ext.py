@@ -432,6 +432,17 @@ class build_ext (old_build_ext):
     def _libs_with_msvc_and_fortran(self, fcompiler, c_libraries,
                                     c_library_dirs):
         if fcompiler is None: return
+		
+        # Always use system linker when using MSVC compiler.
+        f_lib_dirs = []
+        for dir in fcompiler.library_dirs:
+            # correct path when compiling in Cygwin but with normal Win
+            # Python
+            if dir.startswith('/usr/lib'):
+                s, o = exec_command(['cygpath', '-w', dir], use_tee=False)
+                if not s:
+                    dir = o
+            f_lib_dirs.append(dir)
 
         for libname in c_libraries:
             if libname.startswith('msvc'): continue
@@ -458,34 +469,21 @@ class build_ext (old_build_ext):
             if fileexists: continue
             log.warn('could not find library %r in directories %s'
                      % (libname, c_library_dirs))
+            if libname =='Advapi32':
+				continue
+            p = combine_paths(f_lib_dirs, 'lib' + libname + '.a')
+            if p:
+                dst_name = os.path.join(self.build_temp, libname + '.lib')
+                if not os.path.isfile(dst_name):
+                    copy_file(p[0], dst_name)
+                if self.build_temp not in c_library_dirs:
+                    c_library_dirs.append(self.build_temp)
 
-        # Always use system linker when using MSVC compiler.
-        f_lib_dirs = []
-        for dir in fcompiler.library_dirs:
-            # correct path when compiling in Cygwin but with normal Win
-            # Python
-            if dir.startswith('/usr/lib'):
-                s, o = exec_command(['cygpath', '-w', dir], use_tee=False)
-                if not s:
-                    dir = o
-            f_lib_dirs.append(dir)
         c_library_dirs.extend(f_lib_dirs)
-
         # make g77-compiled static libs available to MSVC
         for lib in fcompiler.libraries:
             if not lib.startswith('msvc'):
                 c_libraries.append(lib)
-                p = combine_paths(f_lib_dirs, 'lib' + lib + '.a')
-                if p:
-                    dst_name = os.path.join(self.build_temp, lib + '.lib')
-                    if not os.path.isfile(dst_name):
-                        copy_file(p[0], dst_name)
-                    if self.build_temp not in c_library_dirs:
-                        c_library_dirs.append(self.build_temp)
-						
-		# make g77-compiled static libs available to MSVC
-        for lib in c_libraries:
-            if not lib.startswith('msvc'):
                 p = combine_paths(f_lib_dirs, 'lib' + lib + '.a')
                 if p:
                     dst_name = os.path.join(self.build_temp, lib + '.lib')
